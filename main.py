@@ -3,7 +3,7 @@ import requests
 import yfinance as yf
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from transformers import pipeline
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 app = FastAPI()
 
@@ -15,9 +15,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-print("Loading lightweight sentiment model...")
-# Using a lightweight DistilBERT model that fits comfortably under 512MB RAM
-sentiment_pipeline = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+print("Loading lightweight VADER sentiment analyzer...")
+analyzer = SentimentIntensityAnalyzer()
 
 TIMEFRAME_MAP = {
     "1 Day": "1d",
@@ -31,16 +30,15 @@ TIMEFRAME_MAP = {
 
 def get_sentiment(text: str):
     try:
-        res = sentiment_pipeline(text[:512])[0]
-        label = res['label'].upper()
-        # DistilBERT outputs POSITIVE or NEGATIVE; map them cleanly
-        if label == "POSITIVE":
-            mapped_label = "POSITIVE"
-        elif label == "NEGATIVE":
-            mapped_label = "NEGATIVE"
+        scores = analyzer.polarity_scores(text)
+        compound = scores['compound']
+        
+        if compound >= 0.05:
+            return "POSITIVE", round(float(compound), 2)
+        elif compound <= -0.05:
+            return "NEGATIVE", round(float(abs(compound)), 2)
         else:
-            mapped_label = "NEUTRAL"
-        return mapped_label, round(res['score'], 2)
+            return "NEUTRAL", 0.50
     except Exception:
         return "NEUTRAL", 0.50
 
