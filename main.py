@@ -15,8 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-print("Loading FinBERT model...")
-sentiment_pipeline = pipeline("sentiment-analysis", model="ProsusAI/finbert")
+print("Loading lightweight sentiment model...")
+# Using a lightweight DistilBERT model that fits comfortably under 512MB RAM
+sentiment_pipeline = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
 
 TIMEFRAME_MAP = {
     "1 Day": "1d",
@@ -31,7 +32,15 @@ TIMEFRAME_MAP = {
 def get_sentiment(text: str):
     try:
         res = sentiment_pipeline(text[:512])[0]
-        return res['label'].upper(), round(res['score'], 2)
+        label = res['label'].upper()
+        # DistilBERT outputs POSITIVE or NEGATIVE; map them cleanly
+        if label == "POSITIVE":
+            mapped_label = "POSITIVE"
+        elif label == "NEGATIVE":
+            mapped_label = "NEGATIVE"
+        else:
+            mapped_label = "NEUTRAL"
+        return mapped_label, round(res['score'], 2)
     except Exception:
         return "NEUTRAL", 0.50
 
