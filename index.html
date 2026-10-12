@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Terminal (C N C)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { darkbg: '#070B14', cardbg: '#0D1322', borderbg: '#1A233A' } } }
+        }
+    </script>
+    <style>
+        .radiant-glow { box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #070B14; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1A233A; border-radius: 4px; }
+        .tf-btn.active { background: #10B981; color: #ffffff; border-color: #10B981; }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen font-sans flex flex-col">
+
+    <header class="bg-cardbg border-b border-borderbg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-3.5 flex justify-between items-center">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 bg-emerald-500/10 border border-emerald-500/40 rounded-xl flex items-center justify-center text-emerald-400 radiant-glow">✨</div>
+                <div>
+                    <h1 class="text-sm font-black tracking-widest text-emerald-400 uppercase">Sentiment Analysis Terminal (C N C)</h1>
+                    <p class="text-[11px] text-slate-400 font-mono mt-0.5">Live FinBERT & RSS Connected</p>
+                </div>
+            </div>
+            <button onclick="exportDataToCSV()" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold px-3.5 py-2 rounded-xl border border-emerald-500/30">📥 Export CSV Report</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto w-full px-6 py-6 flex-grow flex flex-col gap-6">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div class="lg:col-span-7 bg-cardbg border border-borderbg rounded-2xl p-4.5 border-emerald-500/30 radiant-glow">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2.5">🔗 Run Custom Article Analysis (Strict Validation)</h3>
+                <div class="flex flex-col md:flex-row gap-2.5">
+                    <input type="text" id="custom-title" placeholder="Headline mentioning Ticker..." class="bg-darkbg border border-borderbg rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 flex-grow" />
+                    <input type="url" id="custom-url" placeholder="https://news.url/..." class="bg-darkbg border border-borderbg rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 flex-grow" />
+                    <button onclick="runCustomAnalysis()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2 rounded-xl whitespace-nowrap">Analyze</button>
+                </div>
+                <div id="url-status" class="text-xs mt-2 font-medium hidden"></div>
+            </div>
+
+            <div class="lg:col-span-5 bg-cardbg border border-borderbg rounded-2xl p-4.5 flex flex-col justify-center">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">🔍 Search Any Ticker Worldwide</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="ticker-input" placeholder="e.g. AAPL, TSLA, RELIANCE.NS..." class="bg-darkbg border border-borderbg rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 flex-grow uppercase" value="AAPL" />
+                    <button onclick="fetchLiveSentiment()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-4 py-2 rounded-xl whitespace-nowrap">Fetch Live</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-cardbg border border-borderbg rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">⏱️ Time Period Filter:</span>
+            <div id="timeframe-container" class="flex flex-wrap gap-2">
+                <button onclick="selectTimeframe('1 Day')" class="tf-btn px-3 py-1.5 rounded-xl border border-borderbg bg-darkbg text-xs font-semibold text-slate-300">1 Day</button>
+                <button onclick="selectTimeframe('5 Days')" class="tf-btn px-3 py-1.5 rounded-xl border border-borderbg bg-darkbg text-xs font-semibold text-slate-300">5 Days</button>
+                <button onclick="selectTimeframe('1 Month')" class="tf-btn px-3 py-1.5 rounded-xl border border-borderbg bg-darkbg text-xs font-semibold text-slate-300">1 Month</button>
+                <button onclick="selectTimeframe('6 Months')" class="tf-btn px-3 py-1.5 rounded-xl border border-borderbg bg-darkbg text-xs font-semibold text-slate-300">6 Months</button>
+                <button onclick="selectTimeframe('1 Year')" class="tf-btn px-3 py-1.5 rounded-xl border border-borderbg bg-darkbg text-xs font-semibold text-slate-300 active">1 Year</button>
+                <button onclick="selectTimeframe('5 Years')" class="tf-btn px-3 py-1.5 rounded-xl border border-borderbg bg-darkbg text-xs font-semibold text-slate-300">5 Years</button>
+                <button onclick="selectTimeframe('10 Years')" class="tf-btn px-3 py-1.5 rounded-xl border border-borderbg bg-darkbg text-xs font-semibold text-slate-300">10 Years</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <section class="lg:col-span-12 flex flex-col gap-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-cardbg border border-borderbg rounded-2xl p-4.5">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Selected Asset</span>
+                        <div id="overview-ticker" class="text-xl font-black text-white mt-1">--</div>
+                        <div id="overview-price" class="text-xs font-semibold text-slate-400 mt-0.5">Reference Price: --</div>
+                    </div>
+                    <div class="bg-cardbg border border-borderbg rounded-2xl p-4.5">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Filtered Live Articles</span>
+                        <div id="overview-articles" class="text-xl font-black text-white mt-1">0</div>
+                        <div id="active-tf-label" class="text-xs text-slate-400 mt-0.5">Timeframe: 1 Year</div>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg border border-borderbg rounded-2xl p-4.5">
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <h3 id="chart-title" class="text-xs font-bold uppercase text-slate-300">Sentiment Distribution</h3>
+                        <div class="flex items-center gap-3 text-[10px] text-slate-400">
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> POSITIVE</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> NEGATIVE</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block"></span> NEUTRAL</span>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-64 flex justify-center items-center">
+                        <canvas id="sentimentPieChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-cardbg border border-borderbg rounded-2xl p-4.5">
+                    <h3 class="text-xs font-bold uppercase text-slate-300 mb-3 pb-2 border-b border-borderbg">Live Article Feed & Sentiment Summary</h3>
+                    <div id="article-list" class="space-y-2.5 max-h-[420px] overflow-y-auto custom-scrollbar"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const BACKEND_API_URL = "https://sentiment-analysis-cnc-final.onrender.com/api/analyze";
+        let currentTicker = "AAPL";
+        let currentTimeframe = "1 Year";
+        let fetchedArticles = [];
+        let currentAssetName = "Apple Inc.";
+        let pieChartInstance = null;
+
+        window.onload = fetchLiveSentiment;
+
+        function selectTimeframe(tf) {
+            currentTimeframe = tf;
+            document.querySelectorAll('.tf-btn').forEach(btn => {
+                if (btn.innerText === tf) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            document.getElementById("active-tf-label").innerText = `Timeframe: ${tf}`;
+            fetchLiveSentiment();
+        }
+
+        async function fetchLiveSentiment() {
+            currentTicker = document.getElementById("ticker-input").value.trim().toUpperCase() || "AAPL";
+            const listEl = document.getElementById("article-list");
+            listEl.innerHTML = `<div class="p-8 text-center text-xs text-emerald-400">🔄 Fetching live news & running FinBERT for ${currentTicker} (${currentTimeframe})...</div>`;
+
+            try {
+                const response = await fetch(`${BACKEND_API_URL}?ticker=${currentTicker}&timeframe=${encodeURIComponent(currentTimeframe)}`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.detail || "Failed to fetch live data");
+
+                currentAssetName = data.name;
+                document.getElementById("overview-ticker").innerText = `${data.ticker} - ${data.name}`;
+                document.getElementById("overview-price").innerText = `Reference Price: ${data.price}`;
+                document.getElementById("overview-articles").innerText = data.total_articles;
+
+                fetchedArticles = data.articles || [];
+                renderArticles(fetchedArticles);
+                renderPieChart(fetchedArticles);
+            } catch (err) {
+                listEl.innerHTML = `<div class="p-8 text-center text-xs text-rose-400">⚠️ Error: ${err.message}. Ensure Colab tunnel is active.</div>`;
+            }
+        }
+
+        function renderArticles(articles) {
+            const listEl = document.getElementById("article-list");
+            listEl.innerHTML = "";
+
+            if (articles.length === 0) {
+                listEl.innerHTML = `<div class="p-8 text-center text-xs text-slate-500">No live articles found for ${currentTicker}.</div>`;
+                return;
+            }
+
+            articles.forEach(art => {
+                let badgeColor = "bg-slate-500/10 text-slate-400 border-slate-500/30";
+                if (art.sentiment === "POSITIVE") badgeColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+                if (art.sentiment === "NEGATIVE") badgeColor = "bg-rose-500/10 text-rose-400 border-rose-500/30";
+
+                listEl.insertAdjacentHTML("beforeend", `
+                    <div class="p-3.5 rounded-xl bg-darkbg/70 border border-borderbg flex justify-between items-center gap-2">
+                        <div class="space-y-0.5 max-w-[75%]">
+                            <h4 class="font-semibold text-xs text-slate-100">${art.title}</h4>
+                            <div class="text-[10px] text-slate-400 truncate"><a href="${art.url}" target="_blank" class="text-emerald-400 hover:underline">${art.url}</a></div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[11px] font-mono text-slate-400">${art.score}</span>
+                            <div class="px-3 py-1 rounded-lg border text-[11px] font-bold ${badgeColor}">${art.sentiment}</div>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        function renderPieChart(articles) {
+            const canvas = document.getElementById('sentimentPieChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            if (pieChartInstance) pieChartInstance.destroy();
+
+            let pos = articles.filter(a => a.sentiment === 'POSITIVE').length;
+            let neg = articles.filter(a => a.sentiment === 'NEGATIVE').length;
+            let neu = articles.filter(a => a.sentiment === 'NEUTRAL').length;
+
+            pieChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['POSITIVE', 'NEGATIVE', 'NEUTRAL'],
+                    datasets: [{
+                        data: [pos, neg, neu],
+                        backgroundColor: ['#10B981', '#EF4444', '#64748B'],
+                        borderWidth: 1,
+                        borderColor: '#070B14'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94A3B8', font: { size: 11 } } } }
+                }
+            });
+        }
+
+        function runCustomAnalysis() {
+            const title = document.getElementById("custom-title").value.trim();
+            const url = document.getElementById("custom-url").value.trim();
+            const statusEl = document.getElementById("url-status");
+
+            if (!title || !url) {
+                statusEl.className = "text-xs mt-2 font-medium text-rose-400 block";
+                statusEl.innerText = "⚠️ Please provide both headline title and URL.";
+                return;
+            }
+
+            const tUpper = title.toUpperCase();
+            const tkUpper = currentTicker.toUpperCase();
+            if (!tUpper.includes(tkUpper)) {
+                statusEl.className = "text-xs mt-2 font-medium text-rose-400 block";
+                statusEl.innerText = `⚠️ Headline rejected: Must mention active ticker (${currentTicker}).`;
+                return;
+            }
+
+            let sentiment = "NEUTRAL";
+            let score = 0.85;
+            if (['SURGE', 'JUMP', 'BEAT', 'PROFIT', 'GROWTH', 'GAIN', 'UPGRADE'].some(w => tUpper.includes(w))) sentiment = "POSITIVE";
+            else if (['FALL', 'DROP', 'LOSS', 'CRASH', 'MISS', 'WARN', 'DECLINE'].some(w => tUpper.includes(w))) sentiment = "NEGATIVE";
+
+            fetchedArticles.unshift({ timeframe: currentTimeframe, title, sentiment, score, url });
+            document.getElementById("overview-articles").innerText = fetchedArticles.length;
+            renderArticles(fetchedArticles);
+            renderPieChart(fetchedArticles);
+
+            statusEl.className = "text-xs mt-2 font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl block";
+            statusEl.innerHTML = `✅ Successfully added & classified as <b>${sentiment}</b> (${score})`;
+            document.getElementById("custom-title").value = "";
+            document.getElementById("custom-url").value = "";
+        }
+
+        function exportDataToCSV() {
+            let csv = "Ticker,Timeframe,Title,Sentiment,Score,URL\n";
+            fetchedArticles.forEach(a => {
+                csv += `${currentTicker},${currentTimeframe},"${a.title.replace(/"/g, '""')}",${a.sentiment},${a.score},"${a.url}"\n`;
+            });
+            const link = document.createElement("a");
+            link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
+            link.download = `${currentTicker}_sentiment_${currentTimeframe}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
