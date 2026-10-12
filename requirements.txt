@@ -3,5 +3,4 @@ uvicorn
 feedparser
 yfinance
 requests
-transformers
-torch
+vaderSentiment
